@@ -53,6 +53,8 @@ class FleetRoutes(private val context: Context) {
     if (req.path.startsWith("/remote/")) return remote.handle(req)
     if (!authorized(req)) return resp(401, err("unauthorized"))
     return when (req.path) {
+      "/portal/sync" -> requireMethod("POST", req) { PortalOta.refresh(); resp(202, PortalOta.health()) }
+      "/portal/health" -> requireMethod("GET", req) { resp(200, PortalOta.health()) }
       "/info" -> requireMethod("GET", req) { info() }
       "/apps" -> requireMethod("GET", req) { apps() }
       "/install" -> requireMethod("POST", req) { install(req) }

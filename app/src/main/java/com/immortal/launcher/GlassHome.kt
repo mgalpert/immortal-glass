@@ -258,6 +258,7 @@ fun GlassHome(actions: GlassActions) {
   BoxWithConstraints(Modifier.fillMaxSize().background(EditBackdrop)) {
     val w = constraints.maxWidth
     val h = constraints.maxHeight
+    val dashboardBackdrop = rememberDashboardBackdrop(w, h)
     val portalLayout = remember(w, h) { portalLayout(Size(w.toFloat(), h.toFloat() - CHROME_HEIGHT)) }
     val portalWallpaper = portalWallpaperIndex?.let { wallpapers.getOrNull(it)?.file }
     val portalBackdrop by
@@ -276,7 +277,11 @@ fun GlassHome(actions: GlassActions) {
         }
 
     // Remembered so a face change doesn't rebuild the gesture detector.
-    val gestures = remember { Modifier.faceGestures(editing = { ui.layer == GlassLayer.Edit }, onEvent = ::send) }
+    val narrowDashboard = rememberUpdatedState(maxWidth < DASHBOARD_WIDE_MIN_DP.dp)
+    val gestures = remember {
+      Modifier.faceGestures(editing = { ui.layer == GlassLayer.Edit },
+          scrolling = { ui.face in setOf(GlassFace.Daily, GlassFace.Evening) && narrowDashboard.value }, onEvent = ::send)
+    }
     val edit by animateFloatAsState(if (layer == GlassLayer.Edit) 1f else 0f, tween(450, easing = FastOutSlowInEasing), label = "edit")
     val density = LocalDensity.current
     Box(
@@ -322,6 +327,14 @@ fun GlassHome(actions: GlassActions) {
                             GlassFace.Modular -> {
                               val look by remember { derivedStateOf { ui.palette(face)!! to ui.look(face).style } }
                               ModularFace(look.first, look.second, weather, agenda, use24Hour)
+                            }
+                            GlassFace.Daily -> {
+                              val active by remember { derivedStateOf { ui.face == face && ui.layer == GlassLayer.Faces } }
+                              DailyDashboard(active, use24Hour, dashboardBackdrop)
+                            }
+                            GlassFace.Evening -> {
+                              val active by remember { derivedStateOf { ui.face == face && ui.layer == GlassLayer.Faces } }
+                              EveningDashboard(active)
                             }
                             GlassFace.Photo -> PhotoFace(photoBackdrop, use24Hour)
                           }
@@ -433,7 +446,7 @@ private enum class Gesture { Tap, Drag }
  * plain tap passes through to the tile. While [editing], every touch is the card's, so tiles under it
  * stay inert.
  */
-private fun Modifier.faceGestures(editing: () -> Boolean, onEvent: (GlassEvent) -> Unit): Modifier =
+private fun Modifier.faceGestures(editing: () -> Boolean, scrolling: () -> Boolean, onEvent: (GlassEvent) -> Unit): Modifier =
   // [editing] is read per gesture rather than keying pointerInput on it: a long press flips it, and
   // restarting the detector then would drop the rest of that touch, letting its release reach the
   // tile underneath as a tap.
@@ -443,6 +456,7 @@ private fun Modifier.faceGestures(editing: () -> Boolean, onEvent: (GlassEvent) 
         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
         if (editing) down.consume()
         val slop = viewConfiguration.touchSlop
+        var initialDrag = Offset.Zero
         val outcome =
             withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
               var result: Gesture? = null
@@ -452,7 +466,10 @@ private fun Modifier.faceGestures(editing: () -> Boolean, onEvent: (GlassEvent) 
                   result = Gesture.Tap
                 } else {
                   if (editing) c.consume()
-                  if ((c.position - down.position).getDistance() > slop) result = Gesture.Drag
+                  if ((c.position - down.position).getDistance() > slop) {
+                    initialDrag = c.position - down.position
+                    result = Gesture.Drag
+                  }
                 }
               }
               result
@@ -463,6 +480,7 @@ private fun Modifier.faceGestures(editing: () -> Boolean, onEvent: (GlassEvent) 
             consumeUntilUp(down.id)
           }
           Gesture.Drag -> {
+            if (dashboardOwnsDrag(scrolling(), editing, initialDrag.x, initialDrag.y)) return@awaitEachGesture
             val end = consumeUntilUp(down.id) ?: return@awaitEachGesture
             val dx = end.x - down.position.x
             val dy = end.y - down.position.y
@@ -498,7 +516,9 @@ private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.con
 @Composable
 private fun FaceChrome(face: () -> GlassFace, museReady: Boolean, onHeyMuse: () -> Unit, onHome: () -> Unit, onDot: (GlassFace) -> Unit) {
   Box(Modifier.fillMaxSize()) {
-    Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp).height(44.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp).height(44.dp)
+        .background(if (face() == GlassFace.Evening) PocketInk else Color.Transparent, RoundedCornerShape(28.dp)),
+        verticalAlignment = Alignment.CenterVertically) {
       if (museReady) {
         Box(remember { Modifier.collapsedWhen(gap = 20.dp) { face() == GlassFace.Portal } }) { MusePill(onHeyMuse) }
       }

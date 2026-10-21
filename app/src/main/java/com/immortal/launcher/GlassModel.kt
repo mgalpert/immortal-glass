@@ -49,6 +49,8 @@ enum class GlassFace(val label: String, val palettes: List<FacePalette>, val sty
           FacePalette(0xFFE0533A, 0xFFFFFFFF),
       ),
       styles = 1),
+  Daily("Your day", listOf(FacePalette(0xFF0C1525, 0xFFFFFFFF)), styles = 1),
+  Evening("Discover", listOf(FacePalette(0xFF101216, 0xFFF8F5FF)), styles = 1),
   Photo("Photo", emptyList(), styles = 1);
 
   val editable: Boolean

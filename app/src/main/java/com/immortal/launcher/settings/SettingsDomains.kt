@@ -9,6 +9,7 @@ package com.immortal.launcher.settings
 
 import android.content.Context
 import android.os.Build
+import com.immortal.launcher.PortalOtaConfig
 import com.immortal.launcher.CalendarFeed
 import com.immortal.launcher.CalendarUrlEntryActivity
 import com.immortal.launcher.SunriseConfig
@@ -1396,6 +1397,17 @@ object SettingsDomains {
           defaults = { WelcomeConfig.Settings() },
       )
 
+  /** Downloads only; never changes local alarms, calling, or phone pairing. */
+  val portal: SettingsDomain<PortalOtaConfig.Settings> = SettingsDomain(
+      id = "portal", title = "Daily Portal content", load = PortalOtaConfig::load,
+      specs = listOf(
+          DerivedSpec("localVersion", get = { it.localVersion }, title = "Local settings version", render = true),
+          BoolSpec("enabled", "Download daily content", get = { it.enabled }, set = PortalOtaConfig::setEnabled),
+          IntSpec("pollSeconds", "Check every", get = { it.pollSeconds }, set = PortalOtaConfig::setPollSeconds,
+              min = 60, max = 3600, step = 1, format = { "$it seconds" }),
+      ), defaults = { PortalOtaConfig.Settings() }, onApplied = { c, _ -> PortalOtaConfig.changed(c) },
+  )
+
   val all: List<SettingsDomain<*>> =
-      listOf(screensaver, calendar, immortal, mqtt, quickbar, fleet, chime, digitalclock, welcome, sunrise)
+      listOf(screensaver, calendar, immortal, mqtt, quickbar, fleet, chime, digitalclock, welcome, sunrise, portal)
 }

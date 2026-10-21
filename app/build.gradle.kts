@@ -32,8 +32,8 @@ android {
     applicationId = "dev.wobsoriano.immortalglass"
     minSdk = 24
     targetSdk = 36
-    versionCode = 68
-    versionName = "1.74"
+    versionCode = 69
+    versionName = "1.74-portal.1"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

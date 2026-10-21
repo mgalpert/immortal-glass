@@ -1,3 +1,17 @@
+# Contains Portal Android companion
+
+This fork adds a native family dashboard, Discover learning, local alarms and signed cached content updates to Immortal Glass. Its Mac studio and publisher live at [mgalpert/contains-portal](https://github.com/mgalpert/contains-portal).
+
+Based on [wobsoriano/immortal-glass](https://github.com/wobsoriano/immortal-glass), itself derived from [Starbright Lab Immortal](https://github.com/starbrightlab/immortal). Upstream history, documentation and MIT attribution are preserved below and in LICENSE.
+
+The `contains-portal` branch is a development source snapshot. Application version 69 (`1.74-portal.1`) was verified on Gen1 Android 9 hardware. No prebuilt APK, production signing key, family photographs, device credentials or personal activity schedules are published here. The checked-in `version.json` still describes the upstream binary release; this fork has not cut an APK release. Use the publisher's separately signed, capability-gated native app channel for an enrolled device, with the same private APK signing key retained locally.
+
+Validation: 465 JVM tests and release assembly passed. Lint retains nine pre-existing errors. Wi-Fi content sync, cached offline reboot, a re-armed offline local alarm, content rollback, fault rejection, settings conflicts and large text fitting were tested on hardware. Current Gen1 provisioning lacks a working unattended APK installer, and the channel refuses unsupported installs. This does not fix Muse speech recognition or replace its separate app/pairing.
+
+The dashboard currently uses San Francisco/Cupertino weather and a J train stop as examples. Generated Playground illustrations are included; original family photos and local event files remain outside source control. New installations must configure/pair their own device and keep upstream self-updates paused for the custom renderer, as described in the Mac publisher's operations guide.
+
+---
+
 # Immortal
 
 A custom home-screen layer for discontinued Meta Portal devices — a play on *Portal*, and on

@@ -98,6 +98,13 @@ object TimerStore {
     scheduleAlarm(context, endsAt)
   }
 
+  /** Re-arm a future alarm after reboot or process restart; expired alarms are not replayed late. */
+  fun restore(context: Context, now: Long = System.currentTimeMillis()) {
+    val state = load(context)
+    if (!state.running) return
+    if (state.endsAt > now) scheduleAlarm(context, state.endsAt) else clear(context)
+  }
+
   /** Freeze a running timer at its current remaining time. */
   fun pause(context: Context, now: Long = System.currentTimeMillis()) {
     val s = load(context)

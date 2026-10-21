@@ -30,6 +30,24 @@ class GlassModelTest {
   }
 
   @Test
+  fun eveningLearningScreenIsOneSwipeAfterDailyAndCanReturn() {
+    val day = GlassUi(face = GlassFace.Daily)
+    val evening = day.reduce(GlassEvent.Swipe(1))
+    assertEquals(GlassFace.Evening, evening.face)
+    assertEquals(GlassFace.Daily, evening.reduce(GlassEvent.Swipe(-1)).face)
+    assertEquals(GlassFace.Photo, evening.reduce(GlassEvent.Swipe(1)).face)
+  }
+
+  @Test
+  fun eveningSelectionPersistsWithoutChangingExistingSavedFaces() {
+    val evening = GlassPrefsCodec.decode("Evening|Daily:0:0")
+    assertEquals(GlassFace.Evening, evening.face)
+    assertEquals(evening.face, GlassPrefsCodec.decode(GlassPrefsCodec.encode(evening.face, evening.looks)).face)
+    assertEquals(GlassFace.Daily, GlassPrefsCodec.decode("Daily|").face)
+    assertEquals(GlassFace.Photo, GlassPrefsCodec.decode("Photo|").face)
+  }
+
+  @Test
   fun homeScreenIgnoresFaceSwipesUntilItIsClosed() {
     val home = GlassUi(face = GlassFace.Portal).run(GlassEvent.SwipeUp)
     assertEquals(GlassLayer.Home, home.layer)

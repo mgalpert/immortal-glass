@@ -10,6 +10,7 @@ package com.immortal.launcher
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.Socket
 import java.net.URL
@@ -27,6 +28,7 @@ import java.net.URL
 object MultiRoomArt {
   private const val MAX_EDGE = 384 // px — plenty for the card / header chip
   private const val MAX_BODY = 8 * 1024 * 1024 // 8 MB cap — art, not downloads
+  private const val MAX_HEADERS = 64 * 1024
 
   private var cachedUrl: String = ""
   private var cachedBitmap: Bitmap? = null
@@ -37,7 +39,7 @@ object MultiRoomArt {
     if (url.isBlank()) return null
     if (url == cachedUrl && cachedBitmap != null) return cachedBitmap
     val raw = runCatching { download(url, redirects = 3) }.getOrNull() ?: return null
-    val bmp = decodeAndScale(raw) ?: return null
+    val bmp = runCatching { decodeAndScale(raw) }.getOrNull() ?: return null
     cachedUrl = url
     cachedBitmap = bmp
     return bmp
@@ -57,14 +59,13 @@ object MultiRoomArt {
       instanceFollowRedirects = true
       setRequestProperty("User-Agent", "Immortal/1.0")
     }
-    return runCatching { c.inputStream.use { it.readBytes() } }.getOrNull().also { c.disconnect() }
+    return runCatching { c.inputStream.use { readBounded(it) } }.getOrNull().also { c.disconnect() }
   }
 
   /**
    * Minimal HTTP/1.1 GET over a raw socket with `Connection: close`, so we just read to
-   * EOF and split headers from body — no Content-Length/chunked bookkeeping for the
-   * common case. Handles chunked bodies if the server uses them, and follows a single
-   * redirect. Plenty for MA's imageproxy.
+   * EOF after bounded headers — no Content-Length bookkeeping for the
+   * common case. Handles bounded chunked bodies and follows up to three redirects.
    */
   private fun downloadCleartext(u: URL, redirects: Int): ByteArray? {
     val host = u.host
@@ -82,10 +83,8 @@ object MultiRoomArt {
         write(req.toByteArray(Charsets.ISO_8859_1))
         flush()
       }
-      val all = s.getInputStream().readBytes().let { if (it.size > MAX_BODY) it.copyOf(MAX_BODY) else it }
-      val sep = indexOfCrlfCrlf(all)
-      if (sep < 0) return null
-      val header = String(all, 0, sep, Charsets.ISO_8859_1)
+      val input = s.getInputStream().buffered()
+      val header = readHeaders(input) ?: return null
       val status = header.lineSequence().firstOrNull()?.split(" ")?.getOrNull(1)?.toIntOrNull() ?: 0
       if (status in 300..399 && redirects > 0) {
         val loc =
@@ -99,21 +98,39 @@ object MultiRoomArt {
         }
       }
       if (status !in 200..299) return null
-      var body = all.copyOfRange(sep + 4, all.size)
+      var body = readBounded(input) ?: return null
       if (header.contains("Transfer-Encoding: chunked", ignoreCase = true)) body = dechunk(body)
       return body
     }
   }
 
-  /** Index of the blank line (\r\n\r\n) separating headers from body, or -1. */
-  private fun indexOfCrlfCrlf(b: ByteArray): Int {
-    var i = 0
-    while (i + 3 < b.size) {
-      if (b[i] == 13.toByte() && b[i + 1] == 10.toByte() && b[i + 2] == 13.toByte() && b[i + 3] == 10.toByte())
-          return i
-      i++
+  /** Read at most the body cap plus one overflow byte; never return a truncated image. */
+  internal fun readBounded(input: InputStream): ByteArray? {
+    val out = ByteArrayOutputStream()
+    val buffer = ByteArray(8192)
+    while (true) {
+      val count = input.read(buffer, 0, minOf(buffer.size, MAX_BODY - out.size() + 1))
+      if (count < 0) return out.toByteArray()
+      if (count > MAX_BODY - out.size()) return null
+      out.write(buffer, 0, count)
     }
-    return -1
+  }
+
+  /** Headers have their own cap, so a valid body may still use the full 8 MB budget. */
+  internal fun readHeaders(input: InputStream): String? {
+    val out = ByteArrayOutputStream()
+    var tail = 0
+    repeat(MAX_HEADERS) {
+      val next = input.read()
+      if (next < 0) return null
+      out.write(next)
+      tail = (tail shl 8) or next
+      if (tail == 0x0d0a0d0a) {
+        val bytes = out.toByteArray()
+        return String(bytes, 0, bytes.size - 4, Charsets.ISO_8859_1)
+      }
+    }
+    return null
   }
 
   /** De-chunk an HTTP/1.1 chunked body. */
@@ -135,7 +152,11 @@ object MultiRoomArt {
   }
 
   private fun decodeAndScale(raw: ByteArray): Bitmap? {
-    val src = BitmapFactory.decodeByteArray(raw, 0, raw.size) ?: return null
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(raw, 0, raw.size, bounds)
+    val sample = sampleSize(bounds.outWidth, bounds.outHeight) ?: return null
+    val options = BitmapFactory.Options().apply { inSampleSize = sample }
+    val src = BitmapFactory.decodeByteArray(raw, 0, raw.size, options) ?: return null
     val longest = maxOf(src.width, src.height)
     if (longest <= MAX_EDGE) return src
     val ratio = MAX_EDGE.toFloat() / longest
@@ -144,5 +165,14 @@ object MultiRoomArt {
             src, (src.width * ratio).toInt().coerceAtLeast(1), (src.height * ratio).toInt().coerceAtLeast(1), true)
     if (scaled !== src) src.recycle()
     return scaled
+  }
+
+  /** Power-of-two sampling bounds the decoded bitmap before allocating its pixels. */
+  internal fun sampleSize(width: Int, height: Int): Int? {
+    if (width <= 0 || height <= 0) return null
+    val longest = maxOf(width, height).toLong()
+    var sample = 1
+    while ((longest + sample - 1) / sample > MAX_EDGE) sample *= 2
+    return sample
   }
 }

@@ -84,7 +84,7 @@ class GlassDevice(private val context: Context) {
   }
 }
 
-private const val MUSE = "dev.wobsoriano.museportal"
+internal const val MUSE = "dev.wobsoriano.museportal"
 
 private fun museWake() =
     Intent("com.portal.wake.action.WAKE")

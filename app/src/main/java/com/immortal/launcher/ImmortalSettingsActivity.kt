@@ -158,6 +158,8 @@ private fun ImmortalSettingsScreen() {
         apply(k, v)
       }
 
+      PortalOtaSettingsSection()
+
       WallpaperSection()
 
       Spacer(Modifier.size(26.dp))

@@ -73,6 +73,12 @@ class ImmortalApp : Application() {
     // Arm the next sunrise wake-light alarm per the user's config.
     SunriseScheduler.reschedule(this)
 
+    // The dashboard alarm uses the shared exact-alarm timer, which must survive reboot.
+    TimerStore.restore(this)
+
+    // Protect the custom release before any upstream update check, then sync daily content.
+    PortalOta.start(this)
+
     // Bring up the WiFi fleet agent if provisioning enabled it (no-op otherwise).
     FleetAgentService.ensureRunning(this)
 
