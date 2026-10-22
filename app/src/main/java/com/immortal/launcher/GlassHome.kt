@@ -247,7 +247,7 @@ fun GlassHome(actions: GlassActions) {
       remember(actions) {
         PortalActions(
             photoFrame = actions.photoFrame,
-            heyMuse = { heyMuse(context) },
+            openMuse = { openMuse(context) },
             volume = { delta -> control { device.stepVolume(delta) } },
             dnd = { control { device.toggleDnd() } },
             screen = { keepAwake = !keepAwake },
@@ -355,7 +355,7 @@ fun GlassHome(actions: GlassActions) {
       FaceChrome(
           face = { ui.face },
           museReady = museReady,
-          onHeyMuse = { heyMuse(context) },
+          onOpenMuse = { openMuse(context) },
           onHome = { send(GlassEvent.SwipeUp) },
           onDot = { send(GlassEvent.GoTo(it)) })
     }
@@ -508,19 +508,19 @@ private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.con
 // --- chrome over the faces --------------------------------------------------------------------
 
 /**
- * The page dots, Home Screen pill and (off the Portal face) the Hey Muse pill. [face] is read only
+ * The page dots, Home Screen pill and (off the Portal face) the Muse pill. [face] is read only
  * while laying out and drawing, so a swipe recomposes and measures nothing here. Recomposing the
  * chrome cost a swipe's first frame 5-20 ms on a Gen-1 Portal, most of it composing and drawing the
  * Muse pill again each time the Portal face came or went.
  */
 @Composable
-private fun FaceChrome(face: () -> GlassFace, museReady: Boolean, onHeyMuse: () -> Unit, onHome: () -> Unit, onDot: (GlassFace) -> Unit) {
+private fun FaceChrome(face: () -> GlassFace, museReady: Boolean, onOpenMuse: () -> Unit, onHome: () -> Unit, onDot: (GlassFace) -> Unit) {
   Box(Modifier.fillMaxSize()) {
     Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp).height(44.dp)
         .background(if (face() == GlassFace.Evening) PocketInk else Color.Transparent, RoundedCornerShape(28.dp)),
         verticalAlignment = Alignment.CenterVertically) {
       if (museReady) {
-        Box(remember { Modifier.collapsedWhen(gap = 20.dp) { face() == GlassFace.Portal } }) { MusePill(onHeyMuse) }
+        Box(remember { Modifier.collapsedWhen(gap = 20.dp) { face() == GlassFace.Portal } }) { MusePill(onOpenMuse) }
       }
       Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
         PageDots(face, onDot)
@@ -550,7 +550,7 @@ private fun MusePill(onTap: () -> Unit) {
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Image(muse, null, Modifier.size(34.dp), filterQuality = FilterQuality.None)
-        BasicText("Hey Muse", style = text(18))
+        BasicText("Muse", style = text(18))
       }
 }
 

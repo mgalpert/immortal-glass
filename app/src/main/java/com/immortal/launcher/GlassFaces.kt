@@ -133,7 +133,7 @@ private fun Modifier.staticLayer() = graphicsLayer { compositingStrategy = andro
 /** What the Portal face's tiles do. */
 class PortalActions(
     val photoFrame: () -> Unit,
-    val heyMuse: () -> Unit,
+    val openMuse: () -> Unit,
     val volume: (Int) -> Unit,
     val dnd: () -> Unit,
     val screen: () -> Unit,
@@ -152,7 +152,7 @@ fun PortalFace(
   val b = backdrop ?: return
   Box(Modifier.fillMaxSize().drawBehind { drawImage(b.sharp) }) {
     GlassTile(b, layout.getValue(PortalSlot.Photo), false, onTap = actions.photoFrame) { TileText(photoFrameTile) }
-    GlassTile(b, layout.getValue(PortalSlot.Muse), false, enabled = museReady, onTap = actions.heyMuse) { MuseTileFace(museReady) }
+    GlassTile(b, layout.getValue(PortalSlot.Muse), false, enabled = museReady, onTap = actions.openMuse) { MuseTileFace(museReady) }
     GlassTile(b, layout.getValue(PortalSlot.Clock), false, onTap = null) { AnalogTileClock() }
     GlassTile(b, layout.getValue(PortalSlot.Volume), false, onTap = null) { VolumeFace(device.volume, actions.volume) }
     val dnd = dndTile(device.dnd)
@@ -213,9 +213,9 @@ private fun MuseTileFace(ready: Boolean) {
     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
       Image(muse, null, Modifier.size(176.dp), filterQuality = FilterQuality.None)
     }
-    BasicText("Hey Muse", style = text(30))
+    BasicText("Muse", style = text(30))
     Spacer(Modifier.height(6.dp))
-    BasicText(if (ready) "Tap to talk" else "Not installed", style = text(24, FontWeight.Medium, Color.White.copy(alpha = 0.78f)))
+    BasicText(if (ready) "Tap to open" else "Not installed", style = text(24, FontWeight.Medium, Color.White.copy(alpha = 0.78f)))
   }
 }
 
