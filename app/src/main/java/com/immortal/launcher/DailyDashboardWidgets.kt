@@ -186,16 +186,16 @@ internal fun DashboardMuseCard(active: Boolean) {
       }.getOrNull() }
     }
   }
-  Row(Modifier.fillMaxSize().clickable(enabled = installed) { heyMuse(context) }
-      .semantics { contentDescription = "Muse. Tap to talk to Muse." },
+  Row(Modifier.fillMaxSize().clickable(enabled = installed) { openMuse(context) }
+      .semantics { contentDescription = "Muse. Tap to open Muse." },
       verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
     Box(Modifier.width(120.dp).fillMaxHeight(), contentAlignment = Alignment.Center) {
       val avatar = sprite
       if (avatar != null) DashboardJolly(avatar, active)
     }
     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      Text(if (installed) "Hey Muse" else "Muse unavailable", style = text(27, color = DashboardInk))
-      Text("Tap to talk", style = text(17, FontWeight.Normal, DashboardDim))
+      Text(if (installed) "Muse" else "Muse unavailable", style = text(27, color = DashboardInk))
+      Text("Tap to open", style = text(17, FontWeight.Normal, DashboardDim))
     }
   }
 }

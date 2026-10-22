@@ -8,17 +8,13 @@
 package com.immortal.launcher
 
 import android.app.NotificationManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.AudioManager
 import android.provider.Settings
-import android.util.Log
 import java.io.File
-
-private const val TAG = "ImmortalGlass"
 
 /** The chosen face and each face's color and style, kept across restarts. */
 object GlassPrefs {
@@ -86,19 +82,14 @@ class GlassDevice(private val context: Context) {
 
 internal const val MUSE = "dev.wobsoriano.museportal"
 
-private fun museWake() =
-    Intent("com.portal.wake.action.WAKE")
-        .setComponent(ComponentName(MUSE, "$MUSE.heymuse.PortalWakeReceiver"))
-        .putExtra("com.portal.wake.extra.ID", "muse")
-
-/** Whether the Muse assistant's wake receiver is installed. */
+/** Whether the Muse assistant can be opened explicitly by the user. */
 fun museInstalled(context: Context): Boolean =
-    runCatching { context.packageManager.queryBroadcastReceivers(museWake(), 0).isNotEmpty() }.getOrDefault(false)
+    runCatching { context.packageManager.getLaunchIntentForPackage(MUSE) != null }.getOrDefault(false)
 
-/** Asks Muse to start listening, the same broadcast its own wake word sends. */
-fun heyMuse(context: Context) {
-  Log.i(TAG, "Hey Muse: portal-wake broadcast")
-  context.sendBroadcast(museWake())
+/** Open Muse for a manual tap; never use the wake-word broadcast or enable its listener. */
+fun openMuse(context: Context) {
+  val intent = context.packageManager.getLaunchIntentForPackage(MUSE) ?: return
+  context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("heyMuse", false))
 }
 
 /** Current conditions plus today's high and low, for the Modular face and the weather widget. */
